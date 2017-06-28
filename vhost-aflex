@@ -1,0 +1,20 @@
+# AFLEX RULE FOR A10NETWORK LB
+# tested on vThunder
+# OS 2.7.2-P10(build: 85)
+# AFLEX 2.0.0
+# based on class list and optimized to not use variable 
+
+when HTTP_REQUEST {
+#add ip client via a X-CLIENT-IP http header 
+HTTP::header insert X-CLIENT-IP [IP::client_addr]
+
+if { [CLASS::match [HTTP::host] equals cl-balance value] != "" } {
+ if {[HTTP::uri] matches "/"} { 
+  if { [CLASS::match [HTTP::host] equals cl-redirect value] != "" } {
+   HTTP::redirect https://[HTTP::host]/[CLASS::match [HTTP::host] equals cl-redirect value]
+  }
+ }
+pool [CLASS::match [HTTP::host] equals cl-balance value]
+}
+#other action to do 
+}
