@@ -1,0 +1,48 @@
+# aFlex for HttpOnly - Secure and HSTS 
+# based on work of Mischa Peters <mpeters AT a10networks DOT com>
+# A10 Networks.
+# allow for exclusion of CSFR cookie  
+
+when RULE_INIT {
+    # IF DEBUG NEEDE SET TO 1 
+    set ::DEBUG 0
+}
+
+when HTTP_REQUEST {
+    # GRAB PORT
+    set PORT [TCP::local_port]
+}
+
+when HTTP_RESPONSE {
+#ADD HSTS HEADER with 1year  
+HTTP::header insert Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+    #set current_time [TIME::clock seconds]
+    foreach cookie_name [HTTP::cookie names] {
+        if { ($::DEBUG == 1) } { log "PORT $PORT Cookie Name $cookie_name" } 
+        if { [HTTP::cookie exists "$cookie_name"] } {
+            set cookie_value [HTTP::cookie value "$cookie_name"]
+			if { ($::DEBUG == 1) } { log "cookie_value $cookie_value" } 
+            #set cookie_expires [HTTP::cookie expires "$cookie_name"]
+            #if { ($::DEBUG == 1) } { log "cookie_expires $cookie_expires" } 
+            set cookie_domain [HTTP::cookie domain "$cookie_name"]
+			if { ($::DEBUG == 1) } { log "cookie_domain $cookie_domain" }
+            set cookie_path [HTTP::cookie path "$cookie_name"]
+			if { ($::DEBUG == 1) } { log "cookie_path $cookie_path" }
+            set new_cookie "$cookie_name=$cookie_value"
+            #if { $cookie_expires > $current_time } {
+            #    set new_expire [clock format $cookie_expires -format {%a, %d %b %Y %H:%M:%S GMT} -gmt 1]
+            #    append new_cookie "; Expires=$new_expire"
+            #}
+            if { $cookie_domain ne "" } { append new_cookie "; Domain=$cookie_domain" }
+            if { $cookie_path ne "" } { append new_cookie "; Path=$cookie_path" }
+			if { ($::DEBUG == 1) } { log "pre-ceck name  $cookie_name" }
+            # Looks 4 XSRF-TOKEN if found do not append nothing
+            if { $PORT == 443 and $cookie_name ne "XSRF-TOKEN"} { append new_cookie "; Secure" }
+            if { ($PORT == 80 or $PORT == 443) and $cookie_name ne "XSRF-TOKEN" } { append new_cookie "; HttpOnly" }
+            if { ($::DEBUG == 1) } { log "Set-Cookie $new_cookie" }
+            HTTP::cookie remove "$cookie_name"
+            HTTP::header insert Set-Cookie "$new_cookie"
+        }
+    }
+}
