@@ -1,6 +1,7 @@
 # AFLEX RULE FOR A10NETWORK LB
 # tested on vThunder
 # OS 2.7.2-P10(build: 85)
+# OS 4.1.1-P8 build 114 
 # AFLEX 2.0.0
 # based on class list and optimized to not use variable 
 
